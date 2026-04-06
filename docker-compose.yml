@@ -1,11 +1,8 @@
 services:
   # ── GPU 版本（DeepStream + TensorRT 基础镜像） ──────────────────────
-  ocr-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ocr-service:latest
-    container_name: ocr-service
+  ocr-gpu:
+    image: ghcr.io/yorkane/rapidocr-api:latest
+    container_name: ocr-gpu
     restart: unless-stopped
     ports:
       - "8089:8089"
@@ -35,12 +32,9 @@ services:
       - gpu
 
   # ── CPU 版本（python:3.10-slim + onnxruntime） ─────────────────────
-  ocr-service-cpu:
-    build:
-      context: .
-      dockerfile: Dockerfile.cpu
-    image: ocr-service-cpu:latest
-    container_name: ocr-service-cpu
+  ocr-cpu:
+    image: ghcr.io/yorkane/rapidocr-api:cpu
+    container_name: ocr-cpu
     restart: unless-stopped
     ports:
       - "8089:8089"
