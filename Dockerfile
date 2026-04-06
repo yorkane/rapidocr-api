@@ -5,7 +5,7 @@
 #  模型: ch_PP-OCRv4 (det + rec + cls) via TensorRT
 # ═══════════════════════════════════════════════════════════════════════
 
-FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
+FROM nvidia/cuda:13.2.0-cudnn-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
