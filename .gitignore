@@ -1,0 +1,31 @@
+# Compiled Python files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# RapidOCR source code used for docker build
+RapidOCR/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Downloaded models or temporary files
+*.onnx
+*.engine
+*.trt
+*.pb
+*.pth
+*.pt
+models/
