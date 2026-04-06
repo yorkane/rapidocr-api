@@ -5,7 +5,7 @@
 #  模型: ch_PP-OCRv4 (det + rec + cls) via TensorRT
 # ═══════════════════════════════════════════════════════════════════════
 
-FROM nvidia/cuda:13.2.0-cudnn-runtime-ubuntu22.04
+FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ── 2. 复制源码与代码 ────────────────────────────────────────────────
 COPY RapidOCR/python/ /app/
+RUN sed -i 's/self.DEFAULT_MODEL_PATH/self.model_root_dir \/ "models"/' /app/rapidocr/inference_engine/tensorrt/main.py
 COPY config_tensorrt.yaml /app/rapidocr/config_tensorrt.yaml
 COPY download_models.py /app/download_models.py
 COPY app/ /app/app/
