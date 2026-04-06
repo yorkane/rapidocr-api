@@ -1,0 +1,64 @@
+services:
+  # ── GPU 版本（DeepStream + TensorRT 基础镜像） ──────────────────────
+  ocr-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ocr-service:latest
+    container_name: ocr-service
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OCR_SERVICE_PORT=8089
+      - OCR_WORKERS=2
+      - OCR_THREADS=4
+      - OCR_MAX_REQUESTS=1000
+      - LOG_LEVEL=info
+    volumes:
+      - trt-engines:/app/rapidocr/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    profiles:
+      - gpu
+
+  # ── CPU 版本（python:3.10-slim + onnxruntime） ─────────────────────
+  ocr-service-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    image: ocr-service-cpu:latest
+    container_name: ocr-service-cpu
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      - OCR_SERVICE_PORT=8089
+      - OCR_WORKERS=4
+      - OCR_THREADS=4
+      - OCR_MAX_REQUESTS=1000
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - cpu
+
+volumes:
+  trt-engines:
+    name: ocr-trt-engines

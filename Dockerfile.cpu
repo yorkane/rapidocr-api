@@ -1,0 +1,67 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  RapidOCR ONNX Runtime CPU HTTP Service
+#  基于 RapidAI/RapidOCR Dockerfile.onnxruntime-cpu + Gunicorn 高并发
+#  模型: ch_PP-OCRv4 (det + rec + cls)
+#  镜像体积: ~1.5GB（对比 GPU 版 ~27GB）
+# ═══════════════════════════════════════════════════════════════════════
+
+FROM python:3.10-slim-bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+WORKDIR /app
+
+# ── 系统依赖（沿用 RapidOCR Dockerfile.base） ───────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── RapidOCR 核心依赖 ────────────────────────────────────────────────
+COPY RapidOCR/python/requirements.txt /tmp/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /tmp/requirements.txt \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip uninstall -y opencv-python 2>/dev/null; \
+    pip install --no-cache-dir opencv-python-headless \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    rm /tmp/requirements.txt
+
+# ── ONNX Runtime CPU（参照 Dockerfile.onnxruntime-cpu） ──────────────
+RUN pip install --no-cache-dir onnxruntime \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# ── HTTP 服务额外依赖 ────────────────────────────────────────────────
+RUN pip install --no-cache-dir \
+    fastapi uvicorn[standard] gunicorn python-multipart \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# ── 复制 RapidOCR 源码 ──────────────────────────────────────────────
+COPY RapidOCR/python/ /app/
+
+# ── 构建阶段预下载 ONNX 模型 ────────────────────────────────────────
+COPY download_models.py /app/download_models.py
+RUN python download_models.py
+
+# ── HTTP 服务代码 ────────────────────────────────────────────────────
+COPY app/ /app/app/
+COPY gunicorn_conf.py /app/gunicorn_conf.py
+
+# ── 服务配置 ──────────────────────────────────────────────────────────
+ENV OCR_SERVICE_PORT=8089
+EXPOSE 8089
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8089/health')" || exit 1
+
+# ── Gunicorn + UvicornWorker 高并发 ──────────────────────────────────
+CMD ["gunicorn", "app.main:app", "--config", "gunicorn_conf.py"]
