@@ -1,7 +1,7 @@
 services:
   # ── GPU 版本（DeepStream + TensorRT 基础镜像） ──────────────────────
   ocr-gpu:
-    image: ghcr.io/yorkane/rapidocr-api:latest
+    image: ghcr.io/yorkane/rapidocr-api:gpu
     container_name: ocr-gpu
     restart: unless-stopped
     ports:
@@ -14,7 +14,7 @@ services:
       - OCR_MAX_REQUESTS=1000
       - LOG_LEVEL=info
     volumes:
-      - ./models:/app/rapidocr/models
+      - ./trt_engines:/app/rapidocr/trt_engines
     deploy:
       resources:
         reservations:

@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ── 2. 复制源码与代码 ────────────────────────────────────────────────
 COPY RapidOCR/python/ /app/
-RUN sed -i 's/self.DEFAULT_MODEL_PATH/self.model_root_dir \/ "models"/' /app/rapidocr/inference_engine/tensorrt/main.py
+RUN sed -i 's/self.DEFAULT_MODEL_PATH/self.model_root_dir/' /app/rapidocr/inference_engine/tensorrt/main.py
 COPY config_tensorrt.yaml /app/rapidocr/config_tensorrt.yaml
 COPY download_models.py /app/download_models.py
 COPY app/ /app/app/

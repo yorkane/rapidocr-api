@@ -23,7 +23,7 @@ EngineConfig:
         use_int8: false
         workspace_size: 1073741824  # 1GB
 
-        cache_dir: null
+        cache_dir: "/app/rapidocr/trt_engines"
         force_rebuild: false
 
         det_profile:
