@@ -22,7 +22,20 @@ def download_models():
 
     # 使用默认 config 下载模型（onnxruntime 引擎的 ONNX 模型）
     config_path = Path("/app/rapidocr/config.yaml")
-    _download(config_path)
+
+    import time
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            _download(config_path)
+            break
+        except Exception as e:
+            print(f"⚠️ 下载失败 (第 {attempt+1}/{max_retries} 次重试): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(10)
+            else:
+                print("❌ 重试彻底失败，退出。")
+                sys.exit(1)
 
     # 验证模型目录
     models_dir = Path("/app/rapidocr/models")
