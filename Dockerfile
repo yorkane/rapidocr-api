@@ -14,9 +14,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
-# ── 1. 合并执行 apt 和 pip，大幅度压缩镜像层和无用缓存 ──
-COPY RapidOCR/python/requirements.txt /tmp/requirements.txt
-
+# ── 1. 安装系统依赖与基础巨型 Python 库（极少变动） ──
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -27,27 +25,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r /tmp/requirements.txt \
-        -i https://pypi.tuna.tsinghua.edu.cn/simple \
-    && pip uninstall -y opencv-python 2>/dev/null || true \
     && pip install --no-cache-dir opencv-python-headless fastapi uvicorn[standard] \
         gunicorn python-multipart onnxruntime "tensorrt>=8.6,<8.7" "cuda-python>=12.0,<13.0" \
         -i https://pypi.tuna.tsinghua.edu.cn/simple \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/requirements.txt ~/.cache/pip
+    && rm -rf /var/lib/apt/lists/* ~/.cache/pip
 
-# ── 2. 复制源码与代码 ────────────────────────────────────────────────
+# ── 2. 安装业务级依赖（偶尔变动） ──
+COPY RapidOCR/python/requirements.txt /tmp/requirements.txt
+RUN sed -i '/opencv_python/d' /tmp/requirements.txt \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    && rm -rf /tmp/requirements.txt ~/.cache/pip
+
+# ── 3. 复制核心引擎与模型配置，并下载模型缓存（很少变动） ──
 COPY RapidOCR/python/ /app/
 RUN sed -i 's/self.DEFAULT_MODEL_PATH/self.model_root_dir/' /app/rapidocr/inference_engine/tensorrt/main.py
 COPY config_tensorrt.yaml /app/rapidocr/config_tensorrt.yaml
 COPY download_models.py /app/download_models.py
+
+RUN python3 download_models.py
+
+# ── 4. 复制 HTTP 服务相关应用代码（最常变动） ──
 COPY app/ /app/app/
 COPY gunicorn_conf.py /app/gunicorn_conf.py
 
-# ── 3. 构建阶段预下载 ONNX 模型 ────────────────────────────────────
-RUN python3 download_models.py
-
-# ── 4. 服务配置 ────────────────────────────────────────────────────────
+# ── 5. 服务配置 ────────────────────────────────────────────────────────
 ENV OCR_SERVICE_PORT=8089
 EXPOSE 8089
 

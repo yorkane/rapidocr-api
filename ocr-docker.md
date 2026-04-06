@@ -127,6 +127,7 @@ ocr-service/
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
+| `USE_TENSORRT` | `true` | 是否启用 TensorRT 引擎（设置为 `false` 可在有配置时降级至 ONNX Runtime）|
 | `OCR_SERVICE_PORT` | `8089` | HTTP 服务端口 |
 | `OCR_WORKERS` | `2` | Gunicorn Worker 进程数 |
 | `OCR_THREADS` | `4` | 每个 Worker 的线程数 |

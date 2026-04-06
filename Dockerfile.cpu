@@ -14,7 +14,7 @@ ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# ── 系统依赖（沿用 RapidOCR Dockerfile.base） ───────────────────────
+# ── 1. 系统配置与大型基础网络包（极少变动） ───────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
@@ -23,40 +23,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     gcc \
     g++ \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir onnxruntime \
+        fastapi uvicorn[standard] gunicorn python-multipart opencv-python-headless \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# ── RapidOCR 核心依赖 ────────────────────────────────────────────────
+# ── 2. RapidOCR 依赖需求（偶尔变动） ────────────────────────────────
 COPY RapidOCR/python/requirements.txt /tmp/requirements.txt
+RUN sed -i '/opencv_python/d' /tmp/requirements.txt \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    && rm -rf /tmp/requirements.txt
 
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /tmp/requirements.txt \
-        -i https://pypi.tuna.tsinghua.edu.cn/simple && \
-    pip uninstall -y opencv-python 2>/dev/null; \
-    pip install --no-cache-dir opencv-python-headless \
-        -i https://pypi.tuna.tsinghua.edu.cn/simple && \
-    rm /tmp/requirements.txt
-
-# ── ONNX Runtime CPU（参照 Dockerfile.onnxruntime-cpu） ──────────────
-RUN pip install --no-cache-dir onnxruntime \
-    -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# ── HTTP 服务额外依赖 ────────────────────────────────────────────────
-RUN pip install --no-cache-dir \
-    fastapi uvicorn[standard] gunicorn python-multipart \
-    -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# ── 复制 RapidOCR 源码 ──────────────────────────────────────────────
+# ── 3. 复制核心引擎代码与配置（很少变动） ────────────────────────────
 COPY RapidOCR/python/ /app/
 
 # ── 构建阶段预下载 ONNX 模型 ────────────────────────────────────────
 COPY download_models.py /app/download_models.py
 RUN python download_models.py
 
-# ── HTTP 服务代码 ────────────────────────────────────────────────────
+# ── 4. 复制 HTTP 服务相关代码（最常变动） ────────────────────────────
 COPY app/ /app/app/
 COPY gunicorn_conf.py /app/gunicorn_conf.py
 
-# ── 服务配置 ──────────────────────────────────────────────────────────
+# ── 5. 服务配置 ────────────────────────────────────────────────────────
 ENV OCR_SERVICE_PORT=8089
 EXPOSE 8089
 

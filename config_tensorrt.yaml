@@ -83,8 +83,8 @@ Det:
     task_type: "det"
     model_path: null
     model_dir: null
-    limit_side_len: 736
-    limit_type: min
+    limit_side_len: 960
+    limit_type: max
     std: [0.5, 0.5, 0.5]
     mean: [0.5, 0.5, 0.5]
     thresh: 0.3

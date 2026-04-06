@@ -30,7 +30,9 @@ class OCREngine:
         from rapidocr import RapidOCR
 
         trt_config = "/app/rapidocr/config_tensorrt.yaml"
-        if os.path.exists(trt_config):
+        use_trt_env = os.environ.get("USE_TENSORRT", "true").lower() in ("true", "1", "yes")
+
+        if use_trt_env and os.path.exists(trt_config):
             print(f"⚙️ 启用 TensorRT 引擎加速，加载配制: {trt_config}")
             engine = RapidOCR(config_path=trt_config)
             OCREngine._device_name = "tensorrt"
@@ -38,7 +40,9 @@ class OCREngine:
             # 使用默认配置（onnxruntime + ch_PP-OCRv4）
             engine = RapidOCR()
             OCREngine._device_name = "onnxruntime"
-            print("🚀 OCR 引擎已初始化: onnxruntime CPU + ch_PP-OCRv4")
+            if not use_trt_env:
+                print("⏬ 已通过环境变量 USE_TENSORRT=false 禁用 TensorRT")
+            print("🚀 OCR 引擎已初始化: onnxruntime CPU/GPU + ch_PP-OCRv4")
 
         # 预热
         test_img = np.zeros((100, 300, 3), dtype=np.uint8)
