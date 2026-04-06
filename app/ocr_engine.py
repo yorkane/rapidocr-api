@@ -26,12 +26,19 @@ class OCREngine:
 
     @staticmethod
     def _create_engine():
-        """创建 RapidOCR 实例（使用默认 onnxruntime 引擎）"""
+        """创建 RapidOCR 实例"""
         from rapidocr import RapidOCR
 
-        # 使用默认配置（onnxruntime + ch_PP-OCRv4）
-        engine = RapidOCR()
-        print("🚀 OCR 引擎已初始化: onnxruntime + ch_PP-OCRv4")
+        trt_config = "/app/rapidocr/config_tensorrt.yaml"
+        if os.path.exists(trt_config):
+            print(f"⚙️ 启用 TensorRT 引擎加速，加载配制: {trt_config}")
+            engine = RapidOCR(config_path=trt_config)
+            OCREngine._device_name = "tensorrt"
+        else:
+            # 使用默认配置（onnxruntime + ch_PP-OCRv4）
+            engine = RapidOCR()
+            OCREngine._device_name = "onnxruntime"
+            print("🚀 OCR 引擎已初始化: onnxruntime CPU + ch_PP-OCRv4")
 
         # 预热
         test_img = np.zeros((100, 300, 3), dtype=np.uint8)
@@ -42,7 +49,9 @@ class OCREngine:
     @classmethod
     def get_device(cls) -> str:
         """返回当前使用的引擎类型"""
-        return "onnxruntime"
+        if not hasattr(cls, "_device_name"):
+            return "unknown"
+        return cls._device_name
 
     @classmethod
     def run_ocr(cls, img: np.ndarray):
