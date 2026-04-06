@@ -17,7 +17,7 @@ services:
       - OCR_MAX_REQUESTS=1000
       - LOG_LEVEL=info
     volumes:
-      - trt-engines:/app/rapidocr/models
+      - ./models:/app/rapidocr/models
     deploy:
       resources:
         reservations:
@@ -59,6 +59,3 @@ services:
     profiles:
       - cpu
 
-volumes:
-  trt-engines:
-    name: ocr-trt-engines
